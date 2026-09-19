@@ -21,6 +21,9 @@
           <el-form-item>
             <el-button type="primary" @click="generate" :loading="store.loading">🔍 生成信号并分析</el-button>
           </el-form-item>
+          <el-form-item>
+            <el-button @click="store.openDashboard()">📺 监控大屏</el-button>
+          </el-form-item>
         </el-form>
       </div>
 
@@ -31,6 +34,7 @@
       <WaterfallPlot v-if="store.result" />
       <ModulationResult v-if="store.result" />
     </main>
+    <MonitorScreen v-if="store.dashboardOpen" />
   </div>
 </template>
 
@@ -40,6 +44,7 @@ import SpectrumPlot from './components/SpectrumPlot.vue'
 import ConstellationPlot from './components/ConstellationPlot.vue'
 import WaterfallPlot from './components/WaterfallPlot.vue'
 import ModulationResult from './components/ModulationResult.vue'
+import MonitorScreen from './components/MonitorScreen.vue'
 import { useSignalStore } from './store/signal'
 const store = useSignalStore()
 const form = reactive({ modulation: 'QPSK', samples: 1024, snr: 20 })

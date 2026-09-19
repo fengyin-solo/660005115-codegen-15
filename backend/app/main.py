@@ -1,7 +1,7 @@
 import math
 import random
 import numpy as np
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -9,6 +9,9 @@ app = FastAPI(title="RF Signal Analyzer")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 MODULATION_TYPES = ["AM", "FM", "BPSK", "QPSK", "16QAM"]
+
+# Cache of the most recent analysis result, served to the read-only monitor dashboard
+LAST_RESULT = None
 
 
 class GenerateRequest(BaseModel):
@@ -130,6 +133,7 @@ def classify_modulation(i: np.ndarray, q: np.ndarray) -> dict:
 
 @app.post("/api/generate")
 def generate_and_analyze(req: GenerateRequest):
+    global LAST_RESULT
     i, q = generate_signal(req.modulation, req.samples, req.snr)
     freqs, mags = compute_fft(i, q)
     waterfall = compute_waterfall(i, q)
@@ -139,9 +143,18 @@ def generate_and_analyze(req: GenerateRequest):
     step = max(1, n // 200)
     constellation = [{"i": float(i[k]), "q": float(q[k])} for k in range(0, n, step)]
 
-    return {
+    LAST_RESULT = {
         "spectrum": {"frequencies": freqs, "magnitudes": mags},
         "waterfall": waterfall,
         "constellation": constellation,
         "modulation": modulation
     }
+    return LAST_RESULT
+
+
+@app.get("/api/result/latest")
+def get_latest_result():
+    """Latest analysis result for the read-only monitor dashboard."""
+    if LAST_RESULT is None:
+        raise HTTPException(status_code=404, detail="暂无分析结果")
+    return LAST_RESULT
