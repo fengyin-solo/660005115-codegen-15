@@ -1,7 +1,8 @@
 import math
 import random
+from datetime import datetime
 import numpy as np
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -9,6 +10,10 @@ app = FastAPI(title="RF Signal Analyzer")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 MODULATION_TYPES = ["AM", "FM", "BPSK", "QPSK", "16QAM"]
+
+# 最近一次分析结果的服务端缓存，供只读监控大屏轮询
+LAST_RESULT: dict | None = None
+LAST_RESULT_TIME: str | None = None
 
 
 class GenerateRequest(BaseModel):
@@ -130,10 +135,26 @@ def classify_modulation(i: np.ndarray, q: np.ndarray) -> dict:
 
 @app.post("/api/generate")
 def generate_and_analyze(req: GenerateRequest):
-    i, q = generate_signal(req.modulation, req.samples, req.snr)
+    global LAST_RESULT, LAST_RESULT_TIME
+    result = _build_result(req.modulation, req.samples, req.snr)
+    LAST_RESULT = result
+    LAST_RESULT_TIME = datetime.now().isoformat(timespec="seconds")
+    return result
+
+
+@app.get("/api/result")
+def get_last_result():
+    """只读接口：返回最近一次分析结果，供监控大屏轮询。无数据时返回 404。"""
+    if LAST_RESULT is None:
+        raise HTTPException(status_code=404, detail="暂无分析数据")
+    return {**LAST_RESULT, "generatedAt": LAST_RESULT_TIME}
+
+
+def _build_result(modulation: str, samples: int, snr: float) -> dict:
+    i, q = generate_signal(modulation, samples, snr)
     freqs, mags = compute_fft(i, q)
     waterfall = compute_waterfall(i, q)
-    modulation = classify_modulation(i, q)
+    modulation_info = classify_modulation(i, q)
 
     n = len(i)
     step = max(1, n // 200)
@@ -143,5 +164,5 @@ def generate_and_analyze(req: GenerateRequest):
         "spectrum": {"frequencies": freqs, "magnitudes": mags},
         "waterfall": waterfall,
         "constellation": constellation,
-        "modulation": modulation
+        "modulation": modulation_info
     }

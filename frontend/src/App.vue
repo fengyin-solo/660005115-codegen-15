@@ -1,8 +1,13 @@
 <template>
   <div class="app-container">
     <header class="app-header">
-      <h1>📡 射频信号频谱分析与调制识别仪</h1>
-      <p class="subtitle">FFT频谱 · 瀑布图 · 星座图 | AM/FM/BPSK/QPSK/16QAM</p>
+      <div class="header-row">
+        <div>
+          <h1>📡 射频信号频谱分析与调制识别仪</h1>
+          <p class="subtitle">FFT频谱 · 瀑布图 · 星座图 | AM/FM/BPSK/QPSK/16QAM</p>
+        </div>
+        <el-button type="primary" size="large" @click="store.openMonitor()">🖥️ 监控大屏</el-button>
+      </div>
     </header>
     <main class="app-main">
       <div class="control-card">
@@ -31,6 +36,7 @@
       <WaterfallPlot v-if="store.result" />
       <ModulationResult v-if="store.result" />
     </main>
+    <MonitorScreen />
   </div>
 </template>
 
@@ -40,6 +46,7 @@ import SpectrumPlot from './components/SpectrumPlot.vue'
 import ConstellationPlot from './components/ConstellationPlot.vue'
 import WaterfallPlot from './components/WaterfallPlot.vue'
 import ModulationResult from './components/ModulationResult.vue'
+import MonitorScreen from './components/MonitorScreen.vue'
 import { useSignalStore } from './store/signal'
 const store = useSignalStore()
 const form = reactive({ modulation: 'QPSK', samples: 1024, snr: 20 })
@@ -51,6 +58,7 @@ function generate() { store.analyze({ ...form }) }
 body{font-family:system-ui,sans-serif;background:#0f1923;color:#e0e0e0}
 .app-container{min-height:100vh}
 .app-header{background:linear-gradient(135deg,#1a2332,#2d3e50);padding:20px 40px;border-bottom:1px solid #2a3a4a}
+.header-row{display:flex;align-items:center;justify-content:space-between;gap:24px}
 .app-header h1{font-size:1.5rem;color:#64b5f6}
 .subtitle{opacity:.7;margin-top:4px;font-size:.85rem}
 .app-main{padding:16px 40px}

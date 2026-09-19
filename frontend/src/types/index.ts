@@ -35,4 +35,10 @@ export interface AnalysisResult {
   modulation: ModulationResult
 }
 
+/** 监控大屏从只读接口 GET /api/result 取到的一屏快照（附带数据生成时间） */
+export type MonitorSnapshot = AnalysisResult & { generatedAt?: string }
+
+/** 大屏数据读取状态：idle 未读取过 / empty 后端无数据 / ok 成功 / stale 有旧数据但本次未取到 */
+export type MonitorStatus = 'idle' | 'empty' | 'ok' | 'stale'
+
 export const MODULATION_TYPES = ['AM', 'FM', 'BPSK', 'QPSK', '16QAM']
